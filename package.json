@@ -2,12 +2,11 @@
   "name": "verym",
   "scripts": {
     "frontend-dev": "npm run dev --workspace=@sff/frontend",
-    "deploy":"cdk infrastructure; cdk deploy -f --require-approval never"
+    "deploy": "cd infrastructure && cdk deploy --require-approval never"
   },
   "workspaces": [
     "apps/*",
     "infrastructure",
-    "packages/*"
+    "packages/**"
   ]
 }
-  

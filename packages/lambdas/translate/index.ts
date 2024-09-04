@@ -1,6 +1,6 @@
 import * as clientTranslate from "@aws-sdk/client-translate";
 import * as lambda from "aws-lambda";
-import { timeStamp } from "console";
+import { ITranslateRequest, ITranslateResponse } from "@sff/shared-types";
 const translateClient = new clientTranslate.TranslateClient({});
 
 export const index: lambda.APIGatewayProxyHandler = async function (
@@ -10,8 +10,9 @@ export const index: lambda.APIGatewayProxyHandler = async function (
     if (!event.body) {
       throw new Error("Body is empty!");
     }
-    const body = JSON.parse(event.body);
-    const { sourceLang, targetLang, text } = body;
+    console.log(event.body);
+    const body = JSON.parse(event.body) as ITranslateRequest;
+    const { sourceLang, targetLang, sourceText } = body;
 
     const now = new Date(Date.now()).toString();
 
@@ -19,14 +20,18 @@ export const index: lambda.APIGatewayProxyHandler = async function (
     const translateCmd = new clientTranslate.TranslateTextCommand({
       SourceLanguageCode: sourceLang,
       TargetLanguageCode: targetLang,
-      Text: text,
+      Text: sourceText,
     });
     const result = await translateClient.send(translateCmd);
     console.log(result);
 
-    const rtnDate = {
+    if (!result.TranslatedText) {
+      throw new Error("Translation is empty!");
+    }
+
+    const rtnDate: ITranslateResponse = {
       timeStamp: now,
-      text: result.TranslatedText,
+      targetText: result.TranslatedText,
     };
 
     return {

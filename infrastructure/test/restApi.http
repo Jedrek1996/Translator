@@ -6,5 +6,5 @@ Accept: "application/json"
 {
     "sourceLang":"en",
     "targetLang":"ru",
-    "text":"walk"
+    "sourceText":"try somthing else"
 }
