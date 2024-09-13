@@ -1,0 +1,8 @@
+{
+  "extends":"../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./nodejs/utils-lambda-layer", //Output dir
+    "rootDir": "./src", //Input dir (codes you want to transpile)
+  },
+  "exclude": ["./nodejs/utils-lambda-layer"] //Exclues the output dir from the input
+}

@@ -7,6 +7,7 @@ import {
   ITranslateRequest,
   ITranslateResponse,
 } from "@sff/shared-types";
+import { gateway } from "/opt/nodejs/utils-lambda-layers";
 
 //Provided
 const { TRANSLATION_TABLE_NAME, TRANSLATION_PARTITION_KEY } = process.env;
@@ -68,28 +69,10 @@ export const translate: lambda.APIGatewayProxyHandler = async function (
 
     await dynamoDbClient.send(new dynamodb.PutItemCommand(tableInsertCmd));
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "*",
-        "Access-Control-Allow-Headers": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify(rtnData),
-    };
+    return gateway.createSuccessJsonResponse(rtnData);
   } catch (error: any) {
     console.error(error);
-    return {
-      statusCode: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "*",
-        "Access-Control-Allow-Headers": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify(error.toString()),
-    };
+    return gateway.createErrorJsonResponse(error);
   }
 };
 
@@ -116,27 +99,9 @@ export const getTranslation: lambda.APIGatewayProxyHandler = async function (
     const rtnData = Items.map((item) => unmarshall(item) as ITranslateDbObject);
     console.log(rtnData);
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "*",
-        "Access-Control-Allow-Headers": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify(rtnData),
-    };
+    return gateway.createSuccessJsonResponse(rtnData);
   } catch (error: any) {
     console.error(error);
-    return {
-      statusCode: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "*",
-        "Access-Control-Allow-Headers": "*",
-        "Access-Control-Allow-Credentials": true,
-      },
-      body: JSON.stringify(error.toString()),
-    };
+    return gateway.createErrorJsonResponse(error);
   }
 };
