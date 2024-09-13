@@ -1,6 +1,10 @@
 "use client";
 import { useState } from "react";
-import { ITranslateRequest, ITranslateResponse } from "@sff/shared-types";
+import {
+  ITranslateDbObject,
+  ITranslateRequest,
+  ITranslateResponse,
+} from "@sff/shared-types";
 
 const URL = "https://341blbb0t5.execute-api.ap-southeast-1.amazonaws.com/prod/";
 
@@ -32,11 +36,31 @@ export const translateText = async ({
   }
 };
 
+export const getTranslations = async () => {
+  try {
+    const result = await fetch(URL, {
+      method: "GET",
+    });
+
+    const rtnValue = (await result.json()) as Array<ITranslateDbObject>;
+    console.log(rtnValue);
+
+    return rtnValue;
+  } catch (error: any) {
+    console.error(error);
+    throw error;
+  }
+};
+
 export default function Home() {
   const [inputLang, setInputLang] = useState<string>("");
   const [outputLang, setOutputLang] = useState<string>("");
-  const [inputText, setInputText] = useState<string>(""); 
+  const [inputText, setInputText] = useState<string>("");
   const [outputText, setOutputText] = useState<ITranslateResponse | null>(null);
+
+  const [translations, setTranslations] = useState<Array<ITranslateDbObject>>(
+    []
+  );
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
@@ -88,6 +112,33 @@ export default function Home() {
       <pre style={{ whiteSpace: "pre-wrap" }}>
         {JSON.stringify(outputText, null, 2)}
       </pre>
+      <button
+        className="btn bg-blue-500 p-2 mt-2 rounded-xl"
+        onClick={async () => {
+          const rtnValue = await getTranslations();
+          setTranslations(rtnValue);
+        }}
+      >
+        Get Translate
+      </button>
+
+      <div>
+        <p>Results:</p>
+        <pre>
+          {translations.map((item) => (
+            <div key={item.requestId}>
+              {" "}
+              {/* Always use a unique key when rendering lists */}
+              <p>
+                {item.sourceLang} / {item.sourceText}
+              </p>
+              <p>
+                {item.targetLang} / {item.targetText}
+              </p>
+            </div>
+          ))}
+        </pre>
+      </div>
     </main>
   );
 }

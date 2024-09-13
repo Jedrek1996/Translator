@@ -1,1 +1,4 @@
 node_modules/
+
+apps/frontend/.next/
+apps/frontend/.next/cache/

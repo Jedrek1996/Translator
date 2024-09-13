@@ -8,5 +8,9 @@
     "apps/*",
     "infrastructure",
     "packages/**"
-  ]
+  ],
+  "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.649.0",
+    "@aws-sdk/util-dynamodb": "^3.649.0"
+  }
 }

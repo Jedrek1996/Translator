@@ -8,3 +8,9 @@ export type ITranslateResponse = {
   timeStamp: string;
   targetText: string;
 };
+
+//Combines all the object above plus custom
+export type ITranslateDbObject = ITranslateRequest &
+  ITranslateResponse & {
+    requestId: string;
+  };
