@@ -11,9 +11,14 @@ export class TempCdkStackStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
+    //Paths
     const projectRoot = "../";
     const lambdasDirPath = path.resolve(
       path.join(projectRoot, "packages/lambdas")
+    );
+    const lambdaLayersDirPath = path.join(
+      projectRoot,
+      "packages/lambda-layers"
     );
 
     //DynamoDb
@@ -45,37 +50,58 @@ export class TempCdkStackStack extends cdk.Stack {
 
     const translateLambdaPath = path.join(lambdasDirPath, "translate/index.ts");
 
+    const utilsLambdaLayerPath = path.resolve(
+      path.join(lambdaLayersDirPath, "utils-lambda-layer")
+    );
+
+    const utilsLambdaLayer = new lambda.LayerVersion(this, "utilsLambdaLayer", {
+      code: lambda.Code.fromAsset(utilsLambdaLayerPath),
+      compatibleRuntimes: [lambda.Runtime.NODEJS_20_X],
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
     const restApi = new apigateway.RestApi(this, "timeofDayRestAPI");
     //Lambda Translate function
-    const translateLambda = new lambdaNodeJs.NodejsFunction(this, "translateLambda", {
-      entry: translateLambdaPath, // Path to Lambda handler
-      handler: "translate", // Update this if handler function is different
-      runtime: lambda.Runtime.NODEJS_20_X,
-      initialPolicy: [translateServicePolicy, translateTablePolicy],
-      environment: {
-        TRANSLATION_TABLE_NAME: table.tableName,
-        TRANSLATION_PARTITION_KEY: "requestId",
-      },
-    });
+    const translateLambda = new lambdaNodeJs.NodejsFunction(
+      this,
+      "translateLambda",
+      {
+        entry: translateLambdaPath, // Path to Lambda handler
+        handler: "translate", // Update this if handler function is different
+        runtime: lambda.Runtime.NODEJS_20_X,
+        initialPolicy: [translateServicePolicy, translateTablePolicy],
+        layers: [utilsLambdaLayer],
+        // bundling:{
+        //   externalModules:["/opt/nodejs/utils-lambda-layers"]
+        // },
+        environment: {
+          TRANSLATION_TABLE_NAME: table.tableName,
+          TRANSLATION_PARTITION_KEY: "requestId",
+        },
+      }
+    );
 
     restApi.root.addMethod(
       "POST",
       new apigateway.LambdaIntegration(translateLambda)
     );
 
-    //Get translation lambda 
-    const getTranslationLambda = new lambdaNodeJs.NodejsFunction(this, "getTranslationLambda", {
-      entry: translateLambdaPath, // Path to Lambda handler
-      handler: "getTranslation", // Update this if handler function is different
-      runtime: lambda.Runtime.NODEJS_20_X,
-      initialPolicy: [ translateTablePolicy],
-      environment: {
-        TRANSLATION_TABLE_NAME: table.tableName,
-        TRANSLATION_PARTITION_KEY: "requestId",
-      },
-    });
-
-
+    //Get translation lambda
+    const getTranslationLambda = new lambdaNodeJs.NodejsFunction(
+      this,
+      "getTranslationLambda",
+      {
+        entry: translateLambdaPath, // Path to Lambda handler
+        handler: "getTranslations", // Update this if handler function is different
+        runtime: lambda.Runtime.NODEJS_20_X,
+        initialPolicy: [translateTablePolicy],
+        layers: [utilsLambdaLayer],
+        environment: {
+          TRANSLATION_TABLE_NAME: table.tableName,
+          TRANSLATION_PARTITION_KEY: "requestId",
+        },
+      }
+    );
 
     restApi.root.addMethod(
       "GET",

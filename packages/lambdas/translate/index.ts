@@ -1,27 +1,34 @@
-import * as clientTranslate from "@aws-sdk/client-translate";
 import * as lambda from "aws-lambda";
-import * as dynamodb from "@aws-sdk/client-dynamodb";
-import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import {
   ITranslateDbObject,
   ITranslateRequest,
   ITranslateResponse,
 } from "@sff/shared-types";
-import { gateway } from "/opt/nodejs/utils-lambda-layers";
+import {
+  gateway,
+  getTranslation,
+  exception,
+  TranslationTable,
+} from "/opt/nodejs/utils-lambda-layers";
 
 //Provided
 const { TRANSLATION_TABLE_NAME, TRANSLATION_PARTITION_KEY } = process.env;
 
-console.log(TRANSLATION_TABLE_NAME, TRANSLATION_PARTITION_KEY);
-
 if (!TRANSLATION_TABLE_NAME) {
-  throw new Error("TRANSLATION_TABLE_NAME is empty! ");
+  throw new exception.MissingEnvironmentVariable(
+    "TRANSLATION_TABLE_NAME is empty! "
+  );
 }
 if (!TRANSLATION_PARTITION_KEY) {
-  throw new Error("TRANSLATION_PARTITION_KEY is empty! ");
+  throw new exception.MissingEnvironmentVariable(
+    "TRANSLATION_PARTITION_KEY is empty! "
+  );
 }
-const translateClient = new clientTranslate.TranslateClient({});
-const dynamoDbClient = new dynamodb.DynamoDBClient({});
+
+const translateTable = new TranslationTable({
+  tableName: TRANSLATION_TABLE_NAME,
+  partitionKey: TRANSLATION_PARTITION_KEY,
+});
 
 export const translate: lambda.APIGatewayProxyHandler = async function (
   event: lambda.APIGatewayProxyEvent,
@@ -29,31 +36,36 @@ export const translate: lambda.APIGatewayProxyHandler = async function (
 ) {
   try {
     if (!event.body) {
-      throw new Error("Body is empty!");
+      throw new exception.MissingBodyData();
     }
-    console.log(event.body);
-    const body = JSON.parse(event.body) as ITranslateRequest;
-    const { sourceLang, targetLang, sourceText } = body;
+
+    let body = JSON.parse(event.body) as ITranslateRequest;
+
+    if (!body.sourceLang) {
+      throw new exception.MissingParameters("sourceLang");
+    }
+    if (!body.targetLang) {
+      throw new exception.MissingParameters("targetLang");
+    }
+    if (!body.sourceText) {
+      throw new exception.MissingParameters("sourceText");
+    }
 
     const now = new Date(Date.now()).toString();
 
     console.log(now);
-    const translateCmd = new clientTranslate.TranslateTextCommand({
-      SourceLanguageCode: sourceLang,
-      TargetLanguageCode: targetLang,
-      Text: sourceText,
-    });
-    const result = await translateClient.send(translateCmd);
-    console.log(result);
+
+    const result = await getTranslation(body);
 
     if (!result.TranslatedText) {
-      throw new Error("Translation is empty!");
+      throw new exception.MissingParameters("Translation is empty!");
     }
 
     const rtnData: ITranslateResponse = {
       timeStamp: now,
       targetText: result.TranslatedText,
     };
+    const { sourceLang, targetLang, sourceText } = body;
 
     //Save data into translation table in db
     const tableObj: ITranslateDbObject = {
@@ -62,12 +74,7 @@ export const translate: lambda.APIGatewayProxyHandler = async function (
       ...rtnData,
     };
 
-    const tableInsertCmd: dynamodb.PutItemCommandInput = {
-      TableName: TRANSLATION_TABLE_NAME,
-      Item: marshall(tableObj),
-    };
-
-    await dynamoDbClient.send(new dynamodb.PutItemCommand(tableInsertCmd));
+    await translateTable.insert(tableObj);
 
     return gateway.createSuccessJsonResponse(rtnData);
   } catch (error: any) {
@@ -76,27 +83,12 @@ export const translate: lambda.APIGatewayProxyHandler = async function (
   }
 };
 
-export const getTranslation: lambda.APIGatewayProxyHandler = async function (
+export const getTranslations: lambda.APIGatewayProxyHandler = async function (
   event: lambda.APIGatewayProxyEvent,
   context: lambda.Context
 ) {
   try {
-    const scanCmd: dynamodb.ScanCommandInput = {
-      TableName: TRANSLATION_TABLE_NAME,
-    };
-
-    console.log("Scancmd", scanCmd);
-
-    const { Items } = await dynamoDbClient.send(
-      new dynamodb.ScanCommand(scanCmd)
-    );
-
-    if (!Items) {
-      throw new Error("No items found");
-    }
-
-    console.log("Items", Items);
-    const rtnData = Items.map((item) => unmarshall(item) as ITranslateDbObject);
+    const rtnData = await translateTable.getAll();
     console.log(rtnData);
 
     return gateway.createSuccessJsonResponse(rtnData);
