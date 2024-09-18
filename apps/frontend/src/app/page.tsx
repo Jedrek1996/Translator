@@ -6,9 +6,10 @@ import {
   ITranslateResponse,
 } from "@sff/shared-types";
 
-const URL = "https://341blbb0t5.execute-api.ap-southeast-1.amazonaws.com/prod/";
+// const URL = "https://341blbb0t5.execute-api.ap-southeast-1.amazonaws.com/prod/";
+const URL = "https://ftofx2ysa5.execute-api.us-east-1.amazonaws.com/prod/";
 
-export const translateText = async ({
+const translateText = async ({
   inputLang,
   outputLang,
   inputText,
@@ -36,7 +37,7 @@ export const translateText = async ({
   }
 };
 
-export const getTranslations = async () => {
+const getTranslations = async () => {
   try {
     const result = await fetch(URL, {
       method: "GET",
@@ -128,7 +129,6 @@ export default function Home() {
           {translations.map((item) => (
             <div key={item.requestId}>
               {" "}
-              {/* Always use a unique key when rendering lists */}
               <p>
                 {item.sourceLang} / {item.sourceText}
               </p>
