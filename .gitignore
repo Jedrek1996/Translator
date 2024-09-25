@@ -4,4 +4,3 @@ apps/frontend/.next/
 apps/frontend/.next/cache/
 
 .env
-.env.template
