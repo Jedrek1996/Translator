@@ -26,6 +26,7 @@
     "@aws-sdk/client-translate": "^3.632.0",
     "aws-cdk-lib": "2.151.0",
     "constructs": "^10.0.0",
+    "dotenv": "^16.4.5",
     "esbuild": "^0.23.0",
     "source-map-support": "^0.5.21"
   }
